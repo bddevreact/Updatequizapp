@@ -405,10 +405,11 @@ The backend is designed to work seamlessly with your existing React frontend:
 ## 📞 Support
 
 For support and questions:
-- Email: support@cryptoquiz.com
-- Telegram: @cryptoquiz_support
+- Email: moonbd01717@gmail.com
+- Telegram: @mushfiqmoon
 - Documentation: [API Docs](https://api.cryptoquiz.com/docs)
 
 ---
 
-**Made with ❤️ for CryptoQuiz App**
+**Developed By [Mushfiqur Rahaman](https:facebook.com/mushfiq.moon)**
+

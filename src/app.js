@@ -14,9 +14,9 @@ const { Server } = require('socket.io');
 require('express-async-errors');
 require('dotenv').config();
 
-// Set NODE_ENV to development for testing
+// Set NODE_ENV to production for Railway deployment
 if (!process.env.NODE_ENV) {
-  process.env.NODE_ENV = 'development';
+  process.env.NODE_ENV = 'production';
 }
 
 // Import routes
@@ -58,10 +58,29 @@ require('./models/Activity');
 const app = express();
 const server = createServer(app);
 
+// Trust proxy for Railway deployment
+app.set('trust proxy', 1);
+
+// CORS configuration
+const allowedOrigins = [
+  'http://localhost:3000', 
+  'http://127.0.0.1:3000', 
+  'http://localhost:5173',
+  'http://localhost:3001',
+  'https://animated-klepon-616113.netlify.app',
+  'https://your-frontend-domain.netlify.app',
+  'https://your-frontend-domain.vercel.app'
+];
+
+// Add CORS_ORIGIN from environment if provided
+if (process.env.CORS_ORIGIN) {
+  allowedOrigins.push(process.env.CORS_ORIGIN);
+}
+
 // Initialize Socket.IO
 const io = new Server(server, {
   cors: {
-    origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+    origin: allowedOrigins,
     methods: ['GET', 'POST'],
     credentials: true
   }
@@ -118,9 +137,24 @@ const limiter = rateLimit({
 
 app.use(limiter);
 
-// CORS configuration
+// Log CORS configuration
+console.log('CORS Configuration:');
+console.log('Allowed Origins:', allowedOrigins);
+console.log('CORS_ORIGIN env var:', process.env.CORS_ORIGIN);
+
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:5173'],
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log('CORS: Blocked origin:', origin);
+      console.log('CORS: Allowed origins:', allowedOrigins);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: [

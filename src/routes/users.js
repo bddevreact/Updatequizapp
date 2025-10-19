@@ -208,9 +208,10 @@ router.put('/:id',
       delete updateData.password;
       delete updateData.role;
       delete updateData.isBlocked;
-      delete updateData.balance;
-      delete updateData.playableBalance;
-      delete updateData.bonusBalance;
+      // Allow balance updates for daily bonus and game activities
+      // delete updateData.balance;
+      // delete updateData.playableBalance;
+      // delete updateData.bonusBalance;
 
       const user = await User.findByIdAndUpdate(
         id,
@@ -372,6 +373,75 @@ router.get('/profile',
   }
 );
 
+// @route   PUT /api/users/balance
+// @desc    Update user balance (for daily bonus, quiz rewards, etc.)
+// @access  Private
+router.put('/balance',
+  authenticate,
+  [
+    body('balance').optional().isNumeric().withMessage('Balance must be a number'),
+    body('playableBalance').optional().isNumeric().withMessage('Playable balance must be a number'),
+    body('bonusBalance').optional().isNumeric().withMessage('Bonus balance must be a number'),
+    body('totalEarned').optional().isNumeric().withMessage('Total earned must be a number'),
+    body('streak').optional().isInt().withMessage('Streak must be an integer'),
+    body('lastBonusClaim').optional().isISO8601().withMessage('Last bonus claim must be a valid date')
+  ],
+  handleValidationErrors,
+  async (req, res) => {
+    try {
+      const userId = req.user._id;
+      const updateData = req.body;
+
+      // Only allow balance-related fields
+      const allowedFields = ['balance', 'playableBalance', 'bonusBalance', 'totalEarned', 'streak', 'lastBonusClaim'];
+      const filteredData = {};
+      
+      for (const field of allowedFields) {
+        if (updateData[field] !== undefined) {
+          filteredData[field] = updateData[field];
+        }
+      }
+
+      const user = await User.findByIdAndUpdate(
+        userId,
+        { ...filteredData, lastActivity: new Date() },
+        { new: true, runValidators: true }
+      ).select('-password');
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          error: {
+            code: 'USER_NOT_FOUND',
+            message: 'User not found'
+          }
+        });
+      }
+
+      res.json({
+        success: true,
+        data: user,
+        message: 'Balance updated successfully'
+      });
+
+    } catch (error) {
+      logger.errorWithContext(error, { 
+        operation: 'update_user_balance',
+        userId: req.user._id,
+        updateData: req.body
+      });
+
+      res.status(500).json({
+        success: false,
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: 'Failed to update balance'
+        }
+      });
+    }
+  }
+);
+
 // @route   PUT /api/users/profile
 // @desc    Update current user profile
 // @access  Private
@@ -392,9 +462,10 @@ router.put('/profile',
       delete updateData.password;
       delete updateData.role;
       delete updateData.isBlocked;
-      delete updateData.balance;
-      delete updateData.playableBalance;
-      delete updateData.bonusBalance;
+      // Allow balance updates for daily bonus and game activities
+      // delete updateData.balance;
+      // delete updateData.playableBalance;
+      // delete updateData.bonusBalance;
 
       const user = await User.findByIdAndUpdate(
         userId,
